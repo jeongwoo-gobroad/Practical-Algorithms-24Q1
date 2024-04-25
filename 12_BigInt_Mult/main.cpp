@@ -1,0 +1,240 @@
+// KNU CSE 2021114026 Jeongwoo Kim
+// AX04, Problem 02; A Big Integer Multiplication Problem
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+int threshold = 0;
+static int counter = 0;
+typedef vector<int> intString;
+typedef int debug_feature;
+
+
+debug_feature printCurrentString(intString& target) {
+    for (int i = target.size() - 1; i >= 0; i--) {
+        cout << target[i];
+    }
+    cout << endl << "Current Size of IntString: " << target.size() << endl;
+    cout << endl;
+}
+
+void rmZeros(intString& target) {
+    int freeCnter = 0;
+
+    for (int i = target.size() - 1; i >= 0; i--) {
+        if (target[i] == 0) freeCnter++;
+        else break;
+    }
+    if (freeCnter) {
+        if (freeCnter == target.size()) {
+            target.resize(1, 0);
+        }
+        else {
+            target.resize(target.size() - freeCnter);
+        }
+    }
+
+    return;
+}
+
+void carryString(intString& target) {
+    int freeCnter = 0;
+
+    for (int i = 0; i < target.size(); i++) { // note that no target.size() - 1
+        target[i + 1] += target[i] / 10;
+        target[i] = target[i] % 10;
+    }
+
+    rmZeros(target);
+    //cout << "Carried" << endl;
+    //printCurrentString(target);
+    return;
+}
+
+intString justMulti(intString a, intString b) {
+    intString result(a.size() + b.size(), 0);
+    
+    for (int i = 0; i < a.size(); i++) {
+        for (int j = 0; j < b.size(); j++) { // new digits are represented as a sum of both index!
+            result[i + j] += a[i] * b[j]; // should be able to add
+        }
+    }
+
+    carryString(result);
+
+    return result;
+}
+
+intString justAdd(intString a, intString b) {
+    if (a.size() > b.size()) { // not creating any longer than longer one's digit + 1
+        //a.resize(a.size() + 1);
+        a.push_back(0); //much safer!
+        for (int i = 0; i < b.size(); i++) {
+            a[i] += b[i];
+        }
+        //cout << "Added" << endl;
+        carryString(a);
+
+        return a;
+    }
+    else {
+        //b.resize(b.size() + 1);
+        b.push_back(0); //much safer!
+        for (int i = 0; i < a.size(); i++) {
+            b[i] += a[i];
+        }
+        //cout << "Added" << endl;
+        carryString(b);
+
+        return b;
+    }
+}
+
+intString catWithPow(intString target, int powNum) { // cat with meow
+    target.resize(target.size() + powNum);
+
+    //cout << target.size() << " " << powNum << endl;
+
+    for (int i = target.size() - 1; i >= powNum; i--) {
+        target[i] = target[i - powNum];
+    }
+    for (int i = 0; i < powNum; i++) {
+        target[i] = 0;
+    }
+    //cout << "CatByPow" << endl;
+    //printCurrentString(target);
+    return target;
+}
+
+intString divByPow(intString target, int powNum) { // pownum := sttidx
+    if (target.size() <= powNum) {
+        return vector<int>(1, 0);
+    }
+
+    for (int i = powNum; i < target.size(); i++) {
+        target[i - powNum] = target[i];
+    }
+
+    target.resize(target.size() - powNum);
+    rmZeros(target);
+    //cout << "DivByPow" << endl;
+    //printCurrentString(target);
+    return target;
+}
+
+intString modByPow(intString target, int powNum) {
+    if (target.size() <= powNum) {
+        return target;
+    }
+    target.resize(powNum);
+    rmZeros(target);
+    //cout << "ModByPow" << endl;
+    //printCurrentString(target);
+    return target;
+}
+
+intString big_integer_prod(intString a, intString b) {
+    /* for a           for b */
+    /* x*10^n + y      u*10^n + v */
+    intString x, y; intString u, v;
+    intString xu, xv, yu, yv;
+    int powNum;
+    counter++;
+
+    // Exit Condition #1: Being zero
+    if ((a.size() == 1 && a[0] == 0) || (b.size() == 1 && b[0] == 0)) {
+        return vector<int>(1, 0); // zero
+    }
+    
+    if (a.size() > b.size()) {
+        powNum = a.size() / 2;
+    }
+    else {
+        powNum = b.size() / 2;
+    }
+
+    // Exit Condition #2: Equations being simple
+    if (a.size() <= threshold && b.size() <= threshold) {
+        // just multi, then return
+        return justMulti(a, b);
+    }
+    /* Optimizations
+    else if (a.size() <= threshold && b.size() > threshold) {
+        // only D&Q b
+        // u = div of b 10^powNum
+        u = divByPow(b, powNum);
+        // v = mod of b 10^powNum
+        v = modByPow(b, powNum);
+
+        return justAdd(catWithPow(big_integer_prod(u, a), powNum), big_integer_prod(v, a));
+    }
+    else if (a.size() > threshold && b.size() <= threshold) {
+        // only D&Q a
+        // x = div of a 10^powNum
+        x = divByPow(a, powNum);
+        // y = mod of a 10^powNum
+        y = modByPow(a, powNum);
+
+        return justAdd(catWithPow(big_integer_prod(x, b), powNum), big_integer_prod(y, b));
+    }
+    */
+    // Exit Condition #3: Still Need to D&Q
+    else {
+        // x = div of a 10^powNum
+        x = divByPow(a, powNum);
+        // y = mod of a 10^powNum
+        y = modByPow(a, powNum);
+        // u = div of b 10^powNum
+        u = divByPow(b, powNum);
+        // v = mod of b 10^powNum
+        v = modByPow(b, powNum);
+
+        // multi xu, xu*10^2powNum
+        xu = catWithPow(big_integer_prod(x, u), 2 * powNum);
+        // multi xv + multi yu, then *10^powNum
+        xv = catWithPow(big_integer_prod(x, v), powNum);
+        yu = catWithPow(big_integer_prod(y, u), powNum);
+        // multi yv
+        yv = big_integer_prod(y, v);
+        // then add it all to result!
+
+        return justAdd(justAdd(xu, xv), justAdd(yu, yv));
+    }
+}
+
+int main(void) {
+    intString a, b;
+    intString result;
+    string temp;
+
+    cin >> threshold;
+
+    cin >> temp;
+    //cout << temp.size() << endl;
+    for (int i = temp.size() - 1; i >= 0; i--) {
+        a.push_back(temp[i] - 48); // '0' is 48 in ASCII
+    }
+    //cout << a.size() << endl;
+
+    temp.resize(0);
+
+    cin >> temp;
+    for (int i = temp.size() - 1; i >= 0; i--) {
+        b.push_back(temp[i] - 48); // '0' is 48 in ASCII
+    }
+
+    rmZeros(a);
+    rmZeros(b);
+
+    result = big_integer_prod(a, b);
+
+    cout << counter << "\n";
+    for (int i = result.size() - 1; i >= 0; i--) {
+        cout << result[i];
+    }
+
+
+    return 0;
+}
